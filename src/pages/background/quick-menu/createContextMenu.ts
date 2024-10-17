@@ -45,6 +45,11 @@ export const createContextMenu = async () => {
       title: 'Settings',
       contexts: ['selection'],
     },
+    {
+      id: 'ask_image_question',
+      title: 'Ask Question',
+      contexts: ['image'],
+    },
   )
 
   // Before creating the context menu, remove all the existing context menus
