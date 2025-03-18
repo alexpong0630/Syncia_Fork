@@ -49,7 +49,7 @@ export default defineManifest(async (env) => ({
   content_scripts: [
     {
       matches: ['http://*/*', 'https://*/*', '<all_urls>'],
-      js: ['src/pages/content/sidebar.tsx'],
+      js: ['src/pages/content/sidebar.tsx','src/pages/content/translateService.tsx'],
     },
     {
       matches: ['http://*/*', 'https://*/*', '<all_urls>'],

@@ -13,6 +13,11 @@ export enum Mode {
   CREATIVE = 1.5,
 }
 
+export enum Language{
+  ENGLISH = 'ENGLISH',
+  CHINESE = 'Chinese'
+}
+
 export type Settings = {
   quickMenu: {
     enabled: boolean
@@ -28,6 +33,13 @@ export type Settings = {
   general: {
     theme: ThemeOptions
     webpageContext: boolean
+  },
+  autoTranslation: {
+    enabled: boolean
+    language: string
+    autoTranslateForDomain: string[]
+    batchSize: number,
+    thread: number
   }
 }
 
@@ -47,4 +59,11 @@ export const defaultSettings: Settings = {
     theme: ThemeOptions.SYSTEM,
     webpageContext: false,
   },
+  autoTranslation: {
+    enabled: true,
+    language: 'Chinese(Traditional)',
+    autoTranslateForDomain: [],
+    batchSize:50,
+    thread: 5
+  }
 }

@@ -5,6 +5,7 @@ import QuickMenuSettings from './Sections/QuickMenuSettings'
 import ChatSettings from './Sections/ChatSettings'
 import useThemeSync from '../../hooks/useThemeSync'
 import PromptSettings from './Sections/PromptSettings'
+import TranslateSettings from './Sections/TranslateSettings'
 
 const Settings = () => {
   useThemeSync()
@@ -16,6 +17,7 @@ const Settings = () => {
           <GeneralSettings />
           <QuickMenuSettings />
           <ChatSettings />
+          <TranslateSettings />
         </div>
         <PromptSettings />
       </div>
