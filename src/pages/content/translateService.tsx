@@ -29,9 +29,9 @@ const TranslateService = (settings:Settings) => {
   if(!settings.autoTranslation.enabled)
     return;
   
-  const maxTranslatingThread = settings.autoTranslation.thread || 5;
+  const maxTranslationThisMinute = settings.autoTranslation.thread || 5;
   
-  let translatingThread = 0;
+  
   let isTranslating = false;
   let batchSize = settings.autoTranslation.batchSize || 1000;
   let toBeTranslateDomElements:string[] = [];
@@ -48,6 +48,37 @@ const TranslateService = (settings:Settings) => {
     },
     temperature: Number(settings.chat.mode)
   });
+
+  const translationsThisMinute = () => {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['translationsThisMinute', 'lastTranslationTime'], (result) => {
+        let translations = result.translationsThisMinute || 0;
+        const lastTranslationTime = result.lastTranslationTime;
+        if (lastTranslationTime) {
+          const lastTranslationDate = new Date(lastTranslationTime);
+          const currentDate = new Date();
+          if (lastTranslationDate.getFullYear() !== currentDate.getFullYear() ||
+              lastTranslationDate.getMonth() !== currentDate.getMonth() ||
+              lastTranslationDate.getDate() !== currentDate.getDate() ||
+              lastTranslationDate.getMinutes() !== currentDate.getMinutes()
+              ) {
+            translations = 0;
+            chrome.storage.local.set({ 'translationsThisMinute': 0,'lastTranslationTime': Date.now()}, () => {
+              contentScriptLog('translationsThisMinute reset to 0 due to minute change');
+            });
+          }
+        }
+        resolve(translations);
+      });
+    });
+  }
+
+  const addTranslationsThisMinute = async () =>{
+    let currentTranslations = await translationsThisMinute() as number;
+    chrome.storage.local.set({ 'translationsThisMinute': currentTranslations + 1,'lastTranslationTime': Date.now() }, () => {
+      contentScriptLog(`translationsThisMinute incremented to ${currentTranslations + 1}`);
+    });
+  }
   
   // Create a unique class identifier for DOM elements
   const createUUIDClass = (tag:string) =>{
@@ -119,7 +150,7 @@ const TranslateService = (settings:Settings) => {
   }
   
   const callOpenAIChat = async (jsonContent:string)=>{
-    const expandedQuery = "translate below text to Traditional Chinese. do not add markdown. keep the order. do not explain the result.:\n" + jsonContent
+    const expandedQuery = "translate below text to " + settings.autoTranslation.language + ". do not add markdown. keep the order. do not explain the result.:\n" + jsonContent
     const messages = [
       new HumanMessage({
         content: expandedQuery,
@@ -135,7 +166,7 @@ const TranslateService = (settings:Settings) => {
 
   }
   
-  const callChatCompletion =async (toBeTranslateDomElementsBatch:any) => {
+  const callChatCompletion = async (toBeTranslateDomElementsBatch:any) => {
     var data = toBeTranslateDomElementsBatch.map((e:any) => e.value).join("|").replace(/[\n\r\t]/g, '');
     let response:any = await callOpenAIChat(data);
     let content = response.content;
@@ -150,7 +181,7 @@ const TranslateService = (settings:Settings) => {
         addTranslatedElement(toBeTranslateDomElementsBatch[k].key, translateTexts[k]);
       }
     }
-    translatingThread--;
+    
   }
   
   const translate = async () =>{
@@ -158,18 +189,18 @@ const TranslateService = (settings:Settings) => {
     isTranslating = true;
     //copy toBeTranslateDomElements
     var toBeTranslateDomElements_temp = JSON.parse(JSON.stringify(toBeTranslateDomElements));
-    console.log("Thread Size:", maxTranslatingThread, "Batch Size:", batchSize);
+    console.log("API call in this minute:", await translationsThisMinute(), "Batch Size:", batchSize);
     for (var i = 0; i < toBeTranslateDomElements_temp.length; i += batchSize) {
       var toBeTranslateDomElementsBatch = toBeTranslateDomElements_temp.slice(i, i + batchSize).map((uuid:string) => {
         var ele = document.getElementsByClassName(uuid)[0] as HTMLElement;
         return ele ? { key: uuid, value: ele.innerText } : null;
       }).filter((el:HTMLElement) => el);
       
-      while (translatingThread >= maxTranslatingThread) {
+      while (await translationsThisMinute() as number >= maxTranslationThisMinute) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
+      await addTranslationsThisMinute();
       callChatCompletion(toBeTranslateDomElementsBatch);
-      translatingThread++;
     }
 
     //remove first N items from toBeTranslateDomElements

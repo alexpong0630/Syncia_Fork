@@ -71,8 +71,8 @@ const TranslateSettings = () => {
       </FieldWrapper>
 
       <FieldWrapper
-        title="Thread Size"
-        description="Thread Size"
+        title="Max Request Per Minute"
+        description="Max Request Per Minute"
         row={true}
       >
         <input
