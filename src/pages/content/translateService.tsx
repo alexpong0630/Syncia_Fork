@@ -8,6 +8,7 @@ import {
   HumanMessage,
   SystemMessage,
 } from '@langchain/core/messages'
+import { getCurrentSiteHostName } from '../../lib/getCurrentSiteHostName'
 
 
 /**
@@ -15,41 +16,96 @@ import {
  * It is only initialized if the user has enabled it in the settings.
  * If the user has excluded the current site, it is not initialized.
  */
-const TranslateService = (settings:Settings) => {
-  contentScriptLog('TranslateService');
-  const tagsForTranslation = [
+class TranslateService { 
+  settings:Settings;
+  maxTranslationThisMinute:number = 0;
+  isTranslating = false;
+  batchSize:number = 1000;
+  toBeTranslateDomElements:string[] = [];
+  inited = false;
+  llm?:ChatOpenAI;
+  controller?:AbortController;
+  observer?:MutationObserver;
+  translateTimer?:any;
+  updatingSettings:boolean = false;
+  
+  tagsForTranslation = [
     'a', 'b', 'blockquote', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i', 'li', 
     'p', 'pre', 'strong', 'ul', 'td', 'th', 'div', 'span', 'text', 'strong', 'bold', 'article', 'react-partial',
-    'turbo-frame', 'template', 'main', 'details', 'summary', 'section'
+    'turbo-frame', 'template', 'main', 'details', 'summary', 'section','article','nav', 'header','footer', 'dl','dt','dd'
   ];
-  const tagsForExtractText = [
+  tagsForExtractText = [
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'strong', 'b', 'a', 'li', 'td', 'summary'
   ];
 
-  if(!settings.autoTranslation.enabled)
-    return;
-  
-  const maxTranslationThisMinute = settings.autoTranslation.thread || 5;
-  
-  
-  let isTranslating = false;
-  let batchSize = settings.autoTranslation.batchSize || 1000;
-  let toBeTranslateDomElements:string[] = [];
-  let inited = false;
-  
-  let controller: AbortController;
+  constructor(settings:Settings){
+    this.settings = settings;
+    this.updateSettings(settings,false);
+  }
 
-  let llm = new ChatOpenAI({
-    streaming: true,
-    openAIApiKey: settings.chat.openAIKey!,
-    modelName: settings.chat.model!,
-    configuration: {
-      baseURL:  settings.chat.openAiBaseUrl,
-    },
-    temperature: Number(settings.chat.mode)
-  });
+  updateSettings = (settings:Settings, autoStart:boolean = true) => {
+    if(this.updatingSettings)
+      return;
+    this.updatingSettings = true;
+    this.disposeAll();
+    this.settings = settings;
 
-  const translationsThisMinute = () => {
+    this.maxTranslationThisMinute = this.settings.autoTranslation.thread || 5;
+    this.batchSize = this.settings.autoTranslation.batchSize || 1000
+    this.llm = new ChatOpenAI({
+      streaming: true,
+      openAIApiKey: this.settings.chat.openAIKey!,
+      modelName: this.settings.chat.model!,
+      configuration: {
+        baseURL:  this.settings.chat.openAiBaseUrl,
+      },
+      temperature: Number(this.settings.chat.mode)
+    });
+
+    this.updatingSettings = false;
+    if(autoStart)
+      this.start();
+  }
+
+  start =()=>{
+    if(!this.settings.autoTranslation.enabled)
+      return;
+  
+    if(this.settings.autoTranslation.autoTranslateForDomain.indexOf(window.location.hostname) == -1){
+      console.log("Not translate page");
+      return;
+    }
+
+    this.assignUUIDForDOMs(document.getElementsByTagName('body')[0].children);
+    this.translate();
+
+    this.observer = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        if (mutation.type === "childList") {
+          this.assignUUIDForDOMs(Array.from(mutation.target.childNodes) as any);
+        }
+      });
+    });
+  
+    this.observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  }
+
+  disposeAll = () =>{
+    if(this.translateTimer)
+      clearInterval(this.translateTimer);
+    if(this.observer)
+    {
+      this.observer.disconnect();
+      this.observer = undefined;
+    }
+    console.log("MutationObserver dispose");
+  }
+
+  translationsThisMinute = () => {
     return new Promise((resolve) => {
       chrome.storage.local.get(['translationsThisMinute', 'lastTranslationTime'], (result) => {
         let translations = result.translationsThisMinute || 0;
@@ -73,15 +129,15 @@ const TranslateService = (settings:Settings) => {
     });
   }
 
-  const addTranslationsThisMinute = async () =>{
-    let currentTranslations = await translationsThisMinute() as number;
+  addTranslationsThisMinute = async () =>{
+    let currentTranslations = await this.translationsThisMinute() as number;
     chrome.storage.local.set({ 'translationsThisMinute': currentTranslations + 1,'lastTranslationTime': Date.now() }, () => {
       contentScriptLog(`translationsThisMinute incremented to ${currentTranslations + 1}`);
     });
   }
   
   // Create a unique class identifier for DOM elements
-  const createUUIDClass = (tag:string) =>{
+  createUUIDClass = (tag:string) =>{
     return 'xxxx'.replace(/[x]/g, function() {
         var r = Math.floor(Math.random() * 16);
         return tag + "-" + r.toString(16);
@@ -89,19 +145,19 @@ const TranslateService = (settings:Settings) => {
   }
   
   // Insert a new node after a reference node
-  const insertAfter = (newNode:HTMLElement, referenceNode:HTMLElement) =>{
+  insertAfter = (newNode:HTMLElement, referenceNode:HTMLElement) =>{
     const parent = referenceNode.parentNode;
     if (parent)
       parent.insertBefore(newNode, referenceNode.nextSibling || null);
   }
   
   // Assigning UUIDs to DOM elements that need translation
-  const assignUUIDForDOMs =(domElements:HTMLCollection) => {
+  assignUUIDForDOMs =(domElements:HTMLCollection) => {
     for (var element of domElements) {
       if(!element.tagName) continue;
       var tag = element.tagName.toLowerCase();
       
-      if (!element.classList || !tagsForTranslation.includes(tag) || element.classList.contains('autotrans-translated') || element.classList.contains('notranslate')) {
+      if (!element.classList || !this.tagsForTranslation.includes(tag) || element.classList.contains('autotrans-translated') || element.classList.contains('notranslate')) {
           continue;
       }
 
@@ -110,26 +166,26 @@ const TranslateService = (settings:Settings) => {
           continue;
       }
 
-      var uuid = 'autotrans-' + createUUIDClass(tag);
+      var uuid = 'autotrans-' + this.createUUIDClass(tag);
       
       if (element.children.length > 0) {
-        if (tagsForExtractText.includes(tag) && element.textContent && element.textContent.trim()) {
+        if (this.tagsForExtractText.includes(tag) && element.textContent && element.textContent.trim()) {
           element.classList.add(uuid);
-          toBeTranslateDomElements.push(uuid);
+          this.toBeTranslateDomElements.push(uuid);
         } else {
-          assignUUIDForDOMs(element.children);
+          this.assignUUIDForDOMs(element.children);
         }
       } else {
         if (element.textContent && element.textContent.trim()) {
           element.classList.add(uuid);
-          toBeTranslateDomElements.push(uuid);
+          this.toBeTranslateDomElements.push(uuid);
         }
       }
     }
   }
   
   
-  const addTranslatedElement = (uuid:string, text:string)=> {
+  addTranslatedElement = (uuid:string, text:string)=> {
     var domElements = document.getElementsByClassName(uuid);
     if (domElements.length === 0) return;
     if (domElements[0].textContent === text) return;
@@ -146,29 +202,29 @@ const TranslateService = (settings:Settings) => {
     });
 
     translatedDiv.innerText = text;
-    insertAfter(translatedDiv, domElement);
+    this.insertAfter(translatedDiv, domElement);
   }
   
-  const callOpenAIChat = async (jsonContent:string)=>{
-    const expandedQuery = "translate below text to " + settings.autoTranslation.language + ". do not add markdown. keep the order. do not explain the result.:\n" + jsonContent
+  callOpenAIChat = async (jsonContent:string)=>{
+    const expandedQuery = "translate below text to " + this.settings.autoTranslation.language + ". do not add markdown. keep the order. do not explain the result.:\n" + jsonContent
     const messages = [
       new HumanMessage({
         content: expandedQuery,
       }),
     ];
     
-    controller = new AbortController()
+    this.controller = new AbortController()
     const options = {
-      signal: controller.signal,
+      signal: this.controller.signal,
       // callbacks: [{ handleLLMNewToken: updateAssistantMessage }],
     }
-    return await llm.invoke(messages, options)
+    return await this.llm!.invoke(messages, options)
 
   }
   
-  const callChatCompletion = async (toBeTranslateDomElementsBatch:any) => {
+  callChatCompletion = async (toBeTranslateDomElementsBatch:any) => {
     var data = toBeTranslateDomElementsBatch.map((e:any) => e.value).join("|").replace(/[\n\r\t]/g, '');
-    let response:any = await callOpenAIChat(data);
+    let response:any = await this.callOpenAIChat(data);
     let content = response.content;
 
     if (!content) return;
@@ -178,86 +234,136 @@ const TranslateService = (settings:Settings) => {
 
     for (var k = 0; k < translateTexts.length; k++) {
       if (toBeTranslateDomElementsBatch[k]) {
-        addTranslatedElement(toBeTranslateDomElementsBatch[k].key, translateTexts[k]);
+        this.addTranslatedElement(toBeTranslateDomElementsBatch[k].key, translateTexts[k]);
       }
     }
     
   }
   
-  const translate = async () =>{
-    if (isTranslating || toBeTranslateDomElements.length === 0) return;
-    isTranslating = true;
+  translate = async () =>{
+    if(!this.settings.autoTranslation.enabled)
+      return;
+  
+    if(this.settings.autoTranslation.autoTranslateForDomain.indexOf(window.location.hostname) == -1){
+      return;
+    }
+
+    if (this.isTranslating || this.toBeTranslateDomElements.length === 0) return;
+    this.isTranslating = true;
     //copy toBeTranslateDomElements
-    var toBeTranslateDomElements_temp = JSON.parse(JSON.stringify(toBeTranslateDomElements));
-    console.log("API call in this minute:", await translationsThisMinute(), "Batch Size:", batchSize);
-    for (var i = 0; i < toBeTranslateDomElements_temp.length; i += batchSize) {
-      var toBeTranslateDomElementsBatch = toBeTranslateDomElements_temp.slice(i, i + batchSize).map((uuid:string) => {
+    var toBeTranslateDomElements_temp = JSON.parse(JSON.stringify(this.toBeTranslateDomElements));
+    console.log("API call in this minute:", await this.translationsThisMinute(), "Batch Size:", this.batchSize);
+    for (var i = 0; i < toBeTranslateDomElements_temp.length; i += this.batchSize) {
+      var toBeTranslateDomElementsBatch = toBeTranslateDomElements_temp.slice(i, i + this.batchSize).map((uuid:string) => {
         var ele = document.getElementsByClassName(uuid)[0] as HTMLElement;
         return ele ? { key: uuid, value: ele.innerText } : null;
       }).filter((el:HTMLElement) => el);
       
-      while (await translationsThisMinute() as number >= maxTranslationThisMinute) {
+      while (await this.translationsThisMinute() as number >= this.maxTranslationThisMinute) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      await addTranslationsThisMinute();
-      callChatCompletion(toBeTranslateDomElementsBatch);
+      await this.addTranslationsThisMinute();
+      this.callChatCompletion(toBeTranslateDomElementsBatch);
     }
 
     //remove first N items from toBeTranslateDomElements
-    toBeTranslateDomElements.splice(0, toBeTranslateDomElements_temp.length);
-    isTranslating = false;
+    this.toBeTranslateDomElements.splice(0, toBeTranslateDomElements_temp.length);
+    this.isTranslating = false;
   }
   
+}
 
-  assignUUIDForDOMs(document.getElementsByTagName('body')[0].children);
-  translate();
 
-  const observer = new MutationObserver((mutations) => {
-    console.log("DOM changed, assigning UUIDs and translating");
-    mutations.forEach(mutation => {
-      if (mutation.type === "childList") {
-        assignUUIDForDOMs(Array.from(mutation.target.childNodes) as any);
+const createTranslateServiceOnStorageChange = () => {
+  chrome.storage.sync.onChanged.addListener(() => {
+    console.log('📝 Storage changed. Re-init translate service')
+    updateTranslateService();
+  })
+}
+let service:TranslateService;
+const initTranslateService = () =>{
+  if(!service)
+  {
+    chrome.storage.sync.get(['SETTINGS'], (result) => {
+      const quickMenuSettings = result.SETTINGS?.quickMenu as Settings['quickMenu']
+      if (quickMenuSettings) {
+        if (quickMenuSettings.enabled) {
+          if (quickMenuSettings.excludedSites.length === 0) 
+          {
+            service = new TranslateService(result.SETTINGS);
+            service.start();
+          }
+          else {
+            const whitelister = new Whitelister(
+              quickMenuSettings.excludedSites || '*',
+            )
+            const isExcluded = whitelister.verify(window.location.href)
+            if (!isExcluded) 
+            {
+              service = new TranslateService(result.SETTINGS);
+              service.start();
+            }
+          }
+        }
       }
     });
-    translate();
-  });
+  }
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
-
-  setInterval(translate, 1000);
   
 }
 
-
-export const createTranslateServiceOnStorageChange = () => {
-  chrome.storage.onChanged.addListener(() => {
-    console.log('📝 Storage changed. Re-init translate service')
-    initTranslateService();
-  })
-}
-
-export const initTranslateService = () =>{
-  chrome.storage.sync.get(['SETTINGS'], (result) => {
-    const quickMenuSettings = result.SETTINGS?.quickMenu as Settings['quickMenu']
-    if (quickMenuSettings) {
-      if (quickMenuSettings.enabled) {
-        if (quickMenuSettings.excludedSites.length === 0) TranslateService(result.SETTINGS)
-        else {
-          const whitelister = new Whitelister(
-            quickMenuSettings.excludedSites || '*',
-          )
-          const isExcluded = whitelister.verify(window.location.href)
-          if (!isExcluded) 
-            TranslateService(result.SETTINGS)
+const updateTranslateService = () =>{
+  if(service)
+  {
+    chrome.storage.sync.get(['SETTINGS'], (result) => {
+      const quickMenuSettings = result.SETTINGS?.quickMenu as Settings['quickMenu']
+      if (quickMenuSettings) {
+        if (quickMenuSettings.enabled) {
+          if (quickMenuSettings.excludedSites.length === 0) 
+          {
+            service.updateSettings(result.SETTINGS);
+          }
+          else {
+            const whitelister = new Whitelister(
+              quickMenuSettings.excludedSites || '*',
+            )
+            const isExcluded = whitelister.verify(window.location.href)
+            if (!isExcluded) 
+            {
+              service.updateSettings(result.SETTINGS);
+            }
+          }
         }
       }
-    }
-  })
+    });
+  }
 }
+
+chrome.runtime.onMessage.addListener(
+  function(request, sender, sendResponse) {
+    const action = request.action;
+    if (action === 'syncia_cancel_translate' || action === 'syncia_translate') {
+      chrome.storage.sync.get(['SETTINGS'], async (result) => {
+        let autoTranslationSetting = (result.SETTINGS as Settings).autoTranslation;
+        const host =  request.payload.pageDomain;
+        if (action === 'syncia_cancel_translate'){
+          autoTranslationSetting.autoTranslateForDomain = autoTranslationSetting.autoTranslateForDomain.filter(domain => domain !== host);
+          //remove all DOMs with class autotrans-translated
+          const elements = document.querySelectorAll('.autotrans-translated'); 
+          elements.forEach(element => {
+            element.remove();
+          });
+        }else{
+          autoTranslationSetting.autoTranslateForDomain.push(host);
+        }
+        // update storage
+        chrome.storage.sync.set({ 'SETTINGS': { ...result.SETTINGS, autoTranslation: autoTranslationSetting } });
+        updateTranslateService();
+      })
+    }
+  }
+);
 
 initTranslateService();
 createTranslateServiceOnStorageChange();
+
