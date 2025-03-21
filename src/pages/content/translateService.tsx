@@ -62,9 +62,10 @@ class TranslateService {
       temperature: Number(this.settings.chat.mode)
     });
 
-    this.updatingSettings = false;
     if(autoStart)
       this.start();
+    this.updatingSettings = false;
+
   }
 
   start =()=>{
@@ -92,6 +93,8 @@ class TranslateService {
       subtree: true,
       characterData: true,
     });
+
+    this.translateTimer = setInterval(this.translate,1000);
   }
 
   disposeAll = () =>{
@@ -171,6 +174,7 @@ class TranslateService {
       if (element.children.length > 0) {
         if (this.tagsForExtractText.includes(tag) && element.textContent && element.textContent.trim()) {
           element.classList.add(uuid);
+          element.classList.add('autotrans-marked');
           this.toBeTranslateDomElements.push(uuid);
         } else {
           this.assignUUIDForDOMs(element.children);
@@ -349,9 +353,21 @@ chrome.runtime.onMessage.addListener(
         if (action === 'syncia_cancel_translate'){
           autoTranslationSetting.autoTranslateForDomain = autoTranslationSetting.autoTranslateForDomain.filter(domain => domain !== host);
           //remove all DOMs with class autotrans-translated
-          const elements = document.querySelectorAll('.autotrans-translated'); 
+          let elements = document.querySelectorAll('.autotrans-translated'); 
           elements.forEach(element => {
             element.remove();
+          });
+
+          elements = document.querySelectorAll('.autotrans-marked'); 
+          elements.forEach(element => {
+            // remove element css class with 'autotrans-' prefix
+            element.classList.forEach(className => {
+              if (className.startsWith('autotrans-')) {
+                element.classList.remove(className);
+              }
+            });
+            element.classList.remove("autotrans-marked");
+            
           });
         }else{
           autoTranslationSetting.autoTranslateForDomain.push(host);
