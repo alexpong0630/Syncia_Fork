@@ -10,9 +10,11 @@ const GeneralSettings = () => {
   const [settings, setSettings] = useSettings()
   const generalSettings = settings.general
 
-  const handleThemeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleThemeChange = async (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
     const value = event.target.value
-    setSettings({
+    await setSettings({
       ...settings,
       general: {
         ...generalSettings,
@@ -49,8 +51,8 @@ const GeneralSettings = () => {
       >
         <Switch.Root
           checked={generalSettings.webpageContext}
-          onCheckedChange={(value) =>
-            setSettings({
+          onCheckedChange={async (value) =>
+            await setSettings({
               ...settings,
               general: {
                 ...generalSettings,

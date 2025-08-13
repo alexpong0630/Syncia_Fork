@@ -38,8 +38,8 @@ export const useChatModels = () => {
     fetchAvailableModels()
   }, [fetchAvailableModels])
 
-  const setActiveChatModel = (modelId: string) => {
-    setSettings({
+  const setActiveChatModel = async (modelId: string) => {
+    await setSettings({
       ...settings,
       chat: {
         ...chatSettings,

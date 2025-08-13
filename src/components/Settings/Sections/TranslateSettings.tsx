@@ -15,8 +15,8 @@ const TranslateSettings = () => {
   const [batchSize, setBatchSize] = useState(translateSettings.batchSize);
 
 
-  const handleEnableAutoTranslateChange = (enabled: boolean) => {
-    setSettings({
+  const handleEnableAutoTranslateChange = async (enabled: boolean) => {
+    await setSettings({
       ...settings,
       autoTranslation: {
         ...translateSettings,
@@ -50,8 +50,8 @@ const TranslateSettings = () => {
       >
         <select
           value={translateSettings.language}
-          onChange={(e) => {
-            setSettings({
+          onChange={async (e) => {
+            await setSettings({
               ...settings,
               autoTranslation: {
                 ...translateSettings,
@@ -78,10 +78,10 @@ const TranslateSettings = () => {
         <input
           type="number"
           value={translateSettings.thread}
-          onChange={(e) => {
+          onChange={async (e) => {
             const newThreadSize = parseInt(e.target.value);
             setThreadSize(newThreadSize);
-            setSettings({
+            await setSettings({
               ...settings,
               autoTranslation: {
                 ...translateSettings,
@@ -101,10 +101,10 @@ const TranslateSettings = () => {
         <input
           type="number"
           value={translateSettings.batchSize}
-          onChange={(e) => {
+          onChange={async (e) => {
             const newBatchSize = parseInt(e.target.value);
             setBatchSize(newBatchSize);
-            setSettings({
+            await setSettings({
               ...settings,
               autoTranslation: {
                 ...translateSettings,

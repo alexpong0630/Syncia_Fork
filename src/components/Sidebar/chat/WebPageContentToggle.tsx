@@ -10,8 +10,8 @@ const WebPageContentToggle = () => {
       </label>
       <Switch.Root
         checked={settings.general.webpageContext}
-        onCheckedChange={(value) =>
-          setSettings({
+          onCheckedChange={async (value) => {
+            await setSettings({
             ...settings,
             general: {
               ...settings.general,

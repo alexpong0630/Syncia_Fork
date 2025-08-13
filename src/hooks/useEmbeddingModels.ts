@@ -41,8 +41,8 @@ export const useEmbeddingModels = () => {
     fetchAvailableModels()
   }, [fetchAvailableModels])
 
-  const setActiveEmbeddingModel = (modelId: string) => {
-    setSettings({
+  const setActiveEmbeddingModel = async (modelId: string) => {
+    await setSettings({
       ...settings,
       chat: {
         ...chatSettings,

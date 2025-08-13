@@ -10,8 +10,8 @@ const QuickMenuSettings = () => {
 
   const quickMenuSettings = settings.quickMenu
 
-  const handleEnableQuickMenuChange = (enabled: boolean) => {
-    setSettings({
+  const handleEnableQuickMenuChange = async (enabled: boolean) => {
+    await setSettings({
       ...settings,
       quickMenu: {
         ...quickMenuSettings,
@@ -20,14 +20,14 @@ const QuickMenuSettings = () => {
     })
   }
 
-  const handleExcludeSitesChange = (
+  const handleExcludeSitesChange = async (
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
     const sites = event.target.value
       .split(',')
       .map((site) => site.trim())
       .filter(Boolean)
-    setSettings({
+    await setSettings({
       ...settings,
       quickMenu: {
         ...quickMenuSettings,

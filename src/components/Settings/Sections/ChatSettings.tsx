@@ -175,8 +175,8 @@ const ChatSettings = () => {
       >
         <select
           value={chatSettings.mode}
-          onChange={(e) => {
-            setSettings({
+          onChange={async (e) => {
+            await setSettings({
               ...settings,
               chat: {
                 ...chatSettings,
