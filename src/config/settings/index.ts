@@ -111,6 +111,7 @@ export type Settings = {
   chat: {
     openAIKey: string | null
     model: string | null
+    embeddingModel: string | null
     mode: Mode
     openAiBaseUrl: string | null
   }
@@ -136,6 +137,7 @@ export const defaultSettings: Settings = {
   chat: {
     openAIKey: null,
     model: null,
+    embeddingModel: null,
     mode: Mode.BALANCED,
     openAiBaseUrl: null,
   },

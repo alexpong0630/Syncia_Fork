@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'
 import { Mode } from '../../../config/settings'
 import { useChatModels } from '../../../hooks/useChatModels'
+import { useEmbeddingModels } from '../../../hooks/useEmbeddingModels'
 import { useSettings } from '../../../hooks/useSettings'
 import { capitalizeText } from '../../../lib/capitalizeText'
 import { validateApiKey } from '../../../lib/validApiKey'
@@ -11,12 +12,22 @@ import SectionHeading from '../Elements/SectionHeading'
 const ChatSettings = () => {
   const [settings, setSettings] = useSettings()
   const [showPassword, setShowPassword] = useState(false)
-  const { models, setActiveChatModel } = useChatModels()
+  const {
+    models,
+    setActiveChatModel,
+    fetchAvailableModels: fetchAvailableChatModels,
+  } = useChatModels()
+  const {
+    models: embeddingModels,
+    setActiveEmbeddingModel,
+    fetchAvailableModels: fetchAvailableEmbeddingModels,
+  } = useEmbeddingModels()
   const OpenAiApiKeyInputRef = React.useRef<HTMLInputElement>(null)
   const OpenAiBaseUrlInputRef = React.useRef<HTMLInputElement>(null)
 
   const chatSettings = settings.chat
 
+  const [isValidating, setIsValidating] = useState(false)
   const handleOpenAiKeySubmit = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
@@ -25,12 +36,13 @@ const ChatSettings = () => {
     const baseurlValue = OpenAiBaseUrlInputRef.current?.value || ''
 
     if (OpenAiApiKeyInputRef.current) {
+      setIsValidating(true)
       const isOpenAiKeyValid: boolean = await validateApiKey(
         apiKeyValue,
         baseurlValue,
       )
       if (isOpenAiKeyValid) {
-        setSettings({
+        await setSettings({
           ...settings,
           chat: {
             ...chatSettings,
@@ -38,7 +50,10 @@ const ChatSettings = () => {
             openAiBaseUrl: baseurlValue,
           },
         })
+        fetchAvailableChatModels()
+        fetchAvailableEmbeddingModels()
       }
+      setIsValidating(false)
       const inputStyles = isOpenAiKeyValid
         ? { classname: 'input-success', value: `✅  ${apiKeyValue}` }
         : { classname: 'input-failed', value: `❌  ${apiKeyValue}` }
@@ -134,6 +149,25 @@ const ChatSettings = () => {
           ))}
         </select>
       </FieldWrapper>
+      {embeddingModels.length > 0 && (
+        <FieldWrapper
+          title="Embedding Model"
+          description="Choose between available embedding models"
+          row={true}
+        >
+          <select
+            value={chatSettings.embeddingModel || ''}
+            className="input cdx-w-44"
+            onChange={(e) => setActiveEmbeddingModel(e.target.value)}
+          >
+            {embeddingModels.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.id}
+              </option>
+            ))}
+          </select>
+        </FieldWrapper>
+      )}
       <FieldWrapper
         title="Mode"
         description="Tweak temperature of response. Creative will generate more non deterministic responses, Precise will generate more deterministic responses."
