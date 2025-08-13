@@ -2,6 +2,7 @@ import { OpenAIEmbeddings } from '@langchain/openai'
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter'
 import { MemoryVectorStore } from 'langchain/vectorstores/memory'
 import { createSHA256Hash } from './createSHA256Hash'
+import { getStoredSettings } from './getStoredSettings'
 import { readStorage, setStorage } from '../hooks/useStorage'
 
 export const getMatchedContent = async (
@@ -21,8 +22,12 @@ const getContextVectorStore = async (
   apiKey: string,
   baseURL: string,
 ) => {
+  const {
+    chat: { embeddingModel },
+  } = await getStoredSettings()
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: apiKey,
+    modelName: embeddingModel || undefined,
     configuration: {
       baseURL: baseURL,
     },
