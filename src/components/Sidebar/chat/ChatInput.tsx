@@ -23,6 +23,11 @@ interface SidebarInputProps {
   cancelRequest: () => void
   isWebpageContextOn: boolean
   isVisionModel: boolean
+  messageDraft: MessageDraft
+  setMessageDraftText: (text: string) => void
+  resetMessageDraft: () => void
+  addMessageDraftFile: (blob: Blob) => Promise<void>
+  removeMessageDraftFile: (id: string) => void
 }
 
 const MAX_MESSAGE_LENGTH = 10000
@@ -35,16 +40,20 @@ export function SidebarInput({
   cancelRequest,
   isWebpageContextOn,
   isVisionModel,
+  messageDraft,
+  setMessageDraftText,
+  resetMessageDraft,
+  addMessageDraftFile,
+  removeMessageDraftFile,
 }: SidebarInputProps) {
-  const {
-    messageDraft,
-    setMessageDraftText,
-    resetMessageDraft,
-    addMessageDraftFile,
-    removeMessageDraftFile,
-  } = useMessageDraft()
   const [delayedLoading, setDelayedLoading] = useState(false)
   const { history } = useChatHistory()
+
+  // Debug: Log received messageDraft props
+  useEffect(() => {
+    console.log('SidebarInput received messageDraft:', messageDraft)
+    console.log('SidebarInput files count:', messageDraft.files.length)
+  }, [messageDraft])
 
   useEffect(() => {
     const handleLoadingTimeout = setTimeout(() => {

@@ -1,18 +1,14 @@
-import { useEffect, useRef } from 'react'
-import {
-  RiCloseLine,
-  RiErrorWarningLine,
-  RiLoader4Line,
-  RiFileCopyLine,
-} from 'react-icons/ri'
-import { ReactMarkdown } from 'react-markdown/lib/react-markdown'
-import rehypeRaw from 'rehype-raw'
-import remarkBreaks from 'remark-breaks'
+import React, { useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { type ChatMessage, ChatRole } from '../../../hooks/useCurrentChat'
-import FilePreviewBar from './FilePreviewBar'
+import remarkBreaks from 'remark-breaks'
+import rehypeRaw from 'rehype-raw'
+import { RiCloseLine, RiFileCopyLine, RiLoader4Line, RiErrorWarningLine } from 'react-icons/ri'
+import { ChatRole, type ChatMessage } from '../../../hooks/useCurrentChat'
 import CodeBlock from './markdown-components/CodeBlock'
 import { Table } from './markdown-components/Table'
+import ThinkingBlock from './markdown-components/ThinkingBlock'
+import FilePreviewBar from './FilePreviewBar'
 
 interface ChatListProps {
   messages: ChatMessage[]
@@ -40,6 +36,47 @@ const ChatList = ({
 
   const formatContent = (content: string) => {
     return content.replace(/(?<=\n\n)(?![*-])\n/gi, '&nbsp;\n ')
+  }
+
+  const processThinkingContent = (content: string) => {
+    // 检查是否包含thinking内容 - 只要检测到<think>就创建区域
+    const hasThinkStart = content.includes('<think>')
+    if (!hasThinkStart) {
+      return { hasThinking: false, thinkingContent: '', processedContent: content }
+    }
+
+    // 找到<think>的位置
+    const thinkStartIndex = content.indexOf('<think>')
+    
+    // 检查是否有</think>标签
+    const hasThinkEnd = content.includes('</think>')
+    
+    if (hasThinkEnd) {
+      // 有结束标签，找到</think>的位置
+      const thinkEndIndex = content.indexOf('</think>') + '</think>'.length
+      
+      // thinking内容：从<think>开始到</think>结束（包括标签）
+      const thinkingContent = content.substring(thinkStartIndex, thinkEndIndex)
+      
+      // 剩余内容：</think>之后的内容
+      const processedContent = content.substring(thinkEndIndex).trim()
+      
+      return {
+        hasThinking: true,
+        thinkingContent,
+        processedContent
+      }
+    } else {
+      // 没有结束标签，从<think>开始的所有内容都作为thinking内容
+      const thinkingContent = content.substring(thinkStartIndex)
+      const processedContent = content.substring(0, thinkStartIndex).trim()
+      
+      return {
+        hasThinking: true,
+        thinkingContent,
+        processedContent
+      }
+    }
   }
 
   const handleCopyMessage = (content: string) => {
@@ -100,16 +137,45 @@ const ChatList = ({
                   <RiFileCopyLine />
                 </button>
               )}
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                rehypePlugins={[rehypeRaw]}
-                components={{
-                  code: CodeBlock,
-                  table: Table,
-                }}
-              >
-                {formatContent(msg.content)}
-              </ReactMarkdown>
+
+              {(() => {
+                const { hasThinking, thinkingContent, processedContent } = processThinkingContent(msg.content)
+                
+                if (!hasThinking) {
+                  return (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkBreaks]}
+                      rehypePlugins={[rehypeRaw]}
+                      components={{
+                        code: CodeBlock,
+                        table: Table,
+                      }}
+                    >
+                      {formatContent(msg.content)}
+                    </ReactMarkdown>
+                  )
+                }
+
+                return (
+                  <>
+                    <ThinkingBlock>
+                      {thinkingContent}
+                    </ThinkingBlock>
+                    {processedContent && (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                        rehypePlugins={[rehypeRaw]}
+                        components={{
+                          code: CodeBlock,
+                          table: Table,
+                        }}
+                      >
+                        {formatContent(processedContent)}
+                      </ReactMarkdown>
+                    )}
+                  </>
+                )
+              })()}
               {msg.files && <FilePreviewBar files={msg.files} />}
             </div>
           ))

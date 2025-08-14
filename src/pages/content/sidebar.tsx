@@ -32,6 +32,24 @@ chrome.runtime.onMessage.addListener((msg) => {
     } else {
       iframe.style.width = '0px'
     }
+  } else if (msg.action === 'add-image-to-chat') {
+    // Auto-open sidebar when adding image to chat
+    console.log('Content script received add-image-to-chat message:', msg)
+    
+    if (iframe.style.width === '0px') {
+      iframe.style.width = '400px'
+      console.log('Sidebar opened automatically')
+    }
+    
+    // Forward the message to sidebar
+    iframe.contentWindow?.postMessage(
+      {
+        action: 'add-image-to-chat',
+        payload: { imageUrl: msg.payload.imageUrl },
+      },
+      '*',
+    )
+    console.log('Message forwarded to sidebar')
   }
 })
 
@@ -73,6 +91,18 @@ window.addEventListener('message', async (event) => {
       {
         action: 'get-screenshot-image',
         payload: image,
+      },
+      '*',
+    )
+  }
+
+  // ACTION: add-image-to-chat ===========================
+  if (action === 'add-image-to-chat') {
+    const { imageUrl } = _payload as { imageUrl: string }
+    iframe.contentWindow?.postMessage(
+      {
+        action: 'add-image-to-chat',
+        payload: { imageUrl },
       },
       '*',
     )

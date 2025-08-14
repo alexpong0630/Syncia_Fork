@@ -15,7 +15,6 @@ interface UseChatCompletionProps {
   model: string
   apiKey: string
   mode: Mode
-  systemPrompt: string
   baseURL: string
 }
 
@@ -25,7 +24,6 @@ export const useChatCompletion = ({
   model,
   apiKey,
   mode,
-  systemPrompt,
   baseURL,
 }: UseChatCompletionProps) => {
   const {
@@ -63,6 +61,23 @@ export const useChatCompletion = ({
   })
 
   const submitQuery = async (message: MessageDraft, context?: string) => {
+    console.log('=== submitQuery Debug ===')
+    console.log('submitQuery called with:', {
+      messageText: message.text,
+      hasContext: !!context,
+      contextLength: context?.length || 0,
+      apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'none',
+      baseURL,
+      baseURLType: typeof baseURL,
+      baseURLLength: baseURL.length
+    })
+    
+    // 檢查 Base URL 是否為空或預設值
+    if (!baseURL || baseURL === '' || baseURL === 'https://api.openai.com/v1') {
+      console.warn('⚠️ Base URL is empty or default in submitQuery!')
+      console.warn('Expected Base URL should be:', 'https://api1.project-ax.party/v1')
+    }
+    
     await addNewMessage(ChatRole.USER, message)
     controller = new AbortController()
     const options = {
@@ -76,6 +91,7 @@ export const useChatCompletion = ({
     try {
       let matchedContext: string | undefined
       if (context) {
+        console.log('Calling getMatchedContent with baseURL:', baseURL)
         matchedContext = await getMatchedContent(
           message.text,
           context,
@@ -94,7 +110,6 @@ export const useChatCompletion = ({
         : message.text
 
       const messages = [
-        new SystemMessage(systemPrompt),
         ...previousMessages,
         new HumanMessage({
           content:

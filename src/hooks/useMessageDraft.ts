@@ -24,12 +24,29 @@ export const useMessageDraft = () => {
   }
 
   const addMessageDraftFile = async (blob: Blob) => {
-    const file = {
-      id: getUUID(),
-      type: blob.type,
-      src: await convertBlobToBase64(blob),
+    console.log('addMessageDraftFile called with blob:', blob)
+    console.log('Blob size:', blob.size, 'Blob type:', blob.type)
+    
+    try {
+      const file = {
+        id: getUUID(),
+        type: blob.type || 'image/png',
+        src: await convertBlobToBase64(blob),
+      }
+      console.log('File object created:', file)
+      console.log('Base64 string length:', file.src.length)
+      
+      setMessageDraft((p) => {
+        const newDraft = { ...p, files: [...p.files, file] }
+        console.log('Message draft updated:', newDraft)
+        return newDraft
+      })
+      
+      console.log('File successfully added to message draft')
+    } catch (error) {
+      console.error('Error in addMessageDraftFile:', error)
+      throw error
     }
-    setMessageDraft((p) => ({ ...p, files: [...p.files, file] }))
   }
 
   const removeMessageDraftFile = (id: string) => {

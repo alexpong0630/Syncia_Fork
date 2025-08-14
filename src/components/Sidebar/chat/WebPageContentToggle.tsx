@@ -18,7 +18,7 @@ const WebPageContentToggle = () => {
               webpageContext: value,
             },
           })
-        }
+        }}
         className="cdx-w-[28px] cdx-h-[16px] cdx-bg-neutral-500 cdx-rounded-full cdx-relative data-[state=checked]:cdx-bg-blue-500 cdx-outline-none cdx-cursor-default"
       >
         <Switch.Thumb className="cdx-block cdx-w-[14px] cdx-h-[14px] cdx-bg-white cdx-rounded-full cdx-transition-transform cdx-duration-100 cdx-translate-x-0.5 cdx-will-change-transform data-[state=checked]:cdx-translate-x-[14px]" />

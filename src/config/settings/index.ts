@@ -112,6 +112,7 @@ export type Settings = {
     openAIKey: string | null
     model: string | null
     embeddingModel: string | null
+    embeddingFormat: 'auto' | 'float' | 'base64' // 新增：embedding 格式偏好
     mode: Mode
     openAiBaseUrl: string | null
   }
@@ -138,6 +139,7 @@ export const defaultSettings: Settings = {
     openAIKey: null,
     model: null,
     embeddingModel: null,
+    embeddingFormat: 'auto', // 預設為自動檢測
     mode: Mode.BALANCED,
     openAiBaseUrl: null,
   },

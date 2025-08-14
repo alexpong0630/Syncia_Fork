@@ -67,6 +67,13 @@ export const createContextMenu = async () => {
     title: "Syncia - Cancel Translate",
     contexts: ['page'],
   });
+
+  // Create image context menu for adding images to chat
+  chrome.contextMenus.create({
+    id: "syncia_add_image_to_chat",
+    title: "Syncia - Add Image to Chat",
+    contexts: ['image'],
+  });
 }
 
 /**
