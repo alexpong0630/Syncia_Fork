@@ -12,5 +12,7 @@ publishExtension({
     skipSubmitReview: false,
   },
 })
-  .then((results) => console.log(results))
+  .then((results) => {
+    // Results processed
+  })
   .catch((err) => console.error(err))

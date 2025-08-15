@@ -9,7 +9,6 @@
 export const sidebarToggleListeners = () => {
   // Toggle sidebar when user performs a keyboard shortcut
   chrome.commands.onCommand.addListener((command) => {
-    console.log(`🚚 [Command Received] ${command}`)
     if (command === 'open-sidebar') {
       toggleSidebar()
     }

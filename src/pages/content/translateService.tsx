@@ -73,7 +73,6 @@ class TranslateService {
       return;
   
     if(this.settings.autoTranslation.autoTranslateForDomain.indexOf(window.location.hostname) == -1){
-      console.log("Not translate page");
       return;
     }
 
@@ -105,7 +104,6 @@ class TranslateService {
       this.observer.disconnect();
       this.observer = undefined;
     }
-    console.log("MutationObserver dispose");
   }
 
   translationsThisMinute = () => {
@@ -230,6 +228,9 @@ class TranslateService {
     var data = toBeTranslateDomElementsBatch.map((e:any) => e.value).join("|").replace(/[\n\r\t]/g, '');
     let response:any = await this.callOpenAIChat(data);
     let content = response.content;
+    
+    // Remove all content between <think></think>, <thinking></thinking>, and <reasoning></reasoning> tags
+    content = content.replace(/<(?:think|thinking|reasoning)>.*?<\/(?:think|thinking|reasoning)>/gs, '');
 
     if (!content) return;
   
@@ -256,7 +257,6 @@ class TranslateService {
     this.isTranslating = true;
     //copy toBeTranslateDomElements
     var toBeTranslateDomElements_temp = JSON.parse(JSON.stringify(this.toBeTranslateDomElements));
-    console.log("API call in this minute:", await this.translationsThisMinute(), "Batch Size:", this.batchSize);
     for (var i = 0; i < toBeTranslateDomElements_temp.length; i += this.batchSize) {
       var toBeTranslateDomElementsBatch = toBeTranslateDomElements_temp.slice(i, i + this.batchSize).map((uuid:string) => {
         var ele = document.getElementsByClassName(uuid)[0] as HTMLElement;
@@ -280,7 +280,6 @@ class TranslateService {
 
 const createTranslateServiceOnStorageChange = () => {
   chrome.storage.sync.onChanged.addListener(() => {
-    console.log('📝 Storage changed. Re-init translate service')
     updateTranslateService();
   })
 }

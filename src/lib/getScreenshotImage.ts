@@ -89,7 +89,6 @@ export const getScreenshotImage = async (): Promise<Blob> => {
   // Take a screenshot of the screen
   const screenshot = await new Promise<string>((resolve) => {
     chrome.runtime.sendMessage({ action: 'captureVisibleTab' }, (dataUrl) => {
-      console.log({ dataUrl })
       resolve(dataUrl)
     })
   })

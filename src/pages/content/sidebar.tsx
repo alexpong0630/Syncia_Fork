@@ -34,11 +34,9 @@ chrome.runtime.onMessage.addListener((msg) => {
     }
   } else if (msg.action === 'add-image-to-chat') {
     // Auto-open sidebar when adding image to chat
-    console.log('Content script received add-image-to-chat message:', msg)
     
     if (iframe.style.width === '0px') {
       iframe.style.width = '400px'
-      console.log('Sidebar opened automatically')
     }
     
     // Forward the message to sidebar
@@ -49,7 +47,6 @@ chrome.runtime.onMessage.addListener((msg) => {
       },
       '*',
     )
-    console.log('Message forwarded to sidebar')
   }
 })
 

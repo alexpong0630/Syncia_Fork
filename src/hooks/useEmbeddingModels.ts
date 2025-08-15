@@ -34,7 +34,6 @@ export const useEmbeddingModels = () => {
         )
         setModels(embeddingModels)
       } catch (error) {
-        console.log('Failed to fetch models:', error)
         setModels([])
       }
     }
@@ -49,14 +48,11 @@ export const useEmbeddingModels = () => {
     const baseUrl = chatSettings.openAiBaseUrl || 'https://api.openai.com/v1'
     const endpoint = `${baseUrl}/embeddings`
     
-    console.log(`Testing embedding format for model: ${modelId}`)
-    
     // 測試用的簡單文本
     const testText = 'Hello world'
     
     try {
       // 先嘗試 float 格式
-      console.log('Testing float format...')
       const floatResponse = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -74,19 +70,15 @@ export const useEmbeddingModels = () => {
         const data = await floatResponse.json()
         if (data.data && data.data[0] && Array.isArray(data.data[0].embedding)) {
           const embedding = data.data[0].embedding
-          console.log(`Model ${modelId} supports float format, embedding length: ${embedding.length}`)
           return 'float'
         }
-      } else {
-        console.log(`Float format test failed with status: ${floatResponse.status}`)
       }
     } catch (error) {
-      console.log(`Float format test failed for ${modelId}:`, error)
+      // Float format test failed
     }
 
     try {
       // 再嘗試 base64 格式
-      console.log('Testing base64 format...')
       const base64Response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -104,19 +96,15 @@ export const useEmbeddingModels = () => {
         const data = await base64Response.json()
         if (data.data && data.data[0] && typeof data.data[0].embedding === 'string') {
           const embedding = data.data[0].embedding
-          console.log(`Model ${modelId} supports base64 format, embedding length: ${embedding.length}`)
           return 'base64'
         }
-      } else {
-        console.log(`Base64 format test failed with status: ${base64Response.status}`)
       }
     } catch (error) {
-      console.log(`Base64 format test failed for ${modelId}:`, error)
+      // Base64 format test failed
     }
 
     try {
       // 最後嘗試不指定格式（讓 API 自己決定）
-      console.log('Testing default format...')
       const defaultResponse = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -134,22 +122,17 @@ export const useEmbeddingModels = () => {
         if (data.data && data.data[0] && data.data[0].embedding) {
           const embedding = data.data[0].embedding
           if (Array.isArray(embedding)) {
-            console.log(`Model ${modelId} uses default float format, embedding length: ${embedding.length}`)
             return 'float'
           } else if (typeof embedding === 'string') {
-            console.log(`Model ${modelId} uses default base64 format, embedding length: ${embedding.length}`)
             return 'base64'
           }
         }
-      } else {
-        console.log(`Default format test failed with status: ${defaultResponse.status}`)
       }
     } catch (error) {
-      console.log(`Default format test failed for ${modelId}:`, error)
+      // Default format test failed
     }
 
     // 如果都不支援，預設使用 auto
-    console.log(`Model ${modelId} format detection failed, using auto`)
     return 'auto'
   }, [chatSettings.openAIKey, chatSettings.openAiBaseUrl])
 
@@ -169,8 +152,6 @@ export const useEmbeddingModels = () => {
           embeddingFormat: detectedFormat,
         },
       })
-      
-      console.log(`Automatically detected format for ${modelId}: ${detectedFormat}`)
     } catch (error) {
       console.error('Failed to test embedding format:', error)
       // 如果檢測失敗，仍然設定模型但使用 auto 格式

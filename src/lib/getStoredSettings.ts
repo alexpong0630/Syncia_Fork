@@ -4,7 +4,7 @@ export const getStoredSettings = async () => {
   const storedSettings = await getStoredSyncSettings()
   if (!storedSettings) {
     chrome.storage.sync.set({ SETTINGS: defaultSettings }, () => {
-      console.log('ℹ️ Default settings stored from getStoredSettings.ts')
+      // Default settings stored
     })
   }
   return storedSettings || defaultSettings

@@ -10,15 +10,6 @@ interface ChatProps {
 }
 
 const Chat = ({ settings }: ChatProps) => {
-  console.log('=== Chat Component Debug ===')
-  console.log('Chat component settings:', {
-    model: settings.chat.model,
-    hasApiKey: !!settings.chat.openAIKey,
-    baseURL: settings.chat.openAiBaseUrl,
-    baseURLType: typeof settings.chat.openAiBaseUrl,
-    baseURLLength: settings.chat.openAiBaseUrl?.length || 0
-  })
-  
   // 檢查 Base URL 是否為空或預設值
   if (!settings.chat.openAiBaseUrl || settings.chat.openAiBaseUrl === '') {
     console.warn('⚠️ Base URL is empty in Chat component!')
@@ -50,7 +41,7 @@ const Chat = ({ settings }: ChatProps) => {
 
   // Debug: Log messageDraft changes
   useEffect(() => {
-    console.log('Chat component messageDraft updated:', messageDraft)
+    // MessageDraft updated
   }, [messageDraft])
 
   useEffect(() => {
@@ -61,14 +52,11 @@ const Chat = ({ settings }: ChatProps) => {
         payload?: any
       }
       
-      console.log('Sidebar received message:', { action, payload })
-      
       if (action === 'generate') {
         submitQuery({ text: prompt!, files: [] })
       } else if (action === 'add-image-to-chat') {
         // Handle adding image to chat from right-click context menu
         const { imageUrl } = payload as { imageUrl: string }
-        console.log('Adding image to chat:', imageUrl)
         
         if (imageUrl) {
           // Method 1: Try to fetch the image with different CORS settings
@@ -77,29 +65,21 @@ const Chat = ({ settings }: ChatProps) => {
             credentials: 'omit'
           })
             .then(response => {
-              console.log('Image fetch response:', response)
               return response.blob()
             })
             .then(blob => {
-              console.log('Image blob created via fetch:', blob)
               if (blob && blob.size > 0) {
                 return addMessageDraftFile(blob)
               } else {
                 throw new Error('Empty blob received')
               }
             })
-            .then(() => {
-              console.log('Image successfully added to message draft via fetch')
-            })
             .catch(error => {
-              console.log('Fetch method failed, trying canvas method:', error)
-              
               // Method 2: Use canvas to capture the image
               const img = new Image()
               img.crossOrigin = 'anonymous'
               
               img.onload = () => {
-                console.log('Image loaded successfully in canvas method')
                 try {
                   const canvas = document.createElement('canvas')
                   const ctx = canvas.getContext('2d')
@@ -110,9 +90,7 @@ const Chat = ({ settings }: ChatProps) => {
                     
                     canvas.toBlob((blob) => {
                       if (blob && blob.size > 0) {
-                        console.log('Canvas blob created:', blob)
                         addMessageDraftFile(blob)
-                          .then(() => console.log('Image added via canvas fallback'))
                           .catch(err => console.error('Canvas fallback failed:', err))
                       } else {
                         console.error('Canvas created empty blob')
@@ -128,7 +106,6 @@ const Chat = ({ settings }: ChatProps) => {
                 console.error('Failed to load image for canvas fallback:', error)
                 
                 // Method 3: Try to create a blob directly from the URL
-                console.log('Trying direct blob creation from URL')
                 try {
                   const xhr = new XMLHttpRequest()
                   xhr.open('GET', imageUrl, true)
@@ -136,9 +113,7 @@ const Chat = ({ settings }: ChatProps) => {
                   xhr.onload = function() {
                     if (this.status === 200) {
                       const blob = this.response
-                      console.log('XHR blob created:', blob)
                       addMessageDraftFile(blob)
-                        .then(() => console.log('Image added via XHR method'))
                         .catch(err => console.error('XHR method failed:', err))
                     } else {
                       console.error('XHR failed with status:', this.status)

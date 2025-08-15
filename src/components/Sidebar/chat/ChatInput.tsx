@@ -51,8 +51,7 @@ export function SidebarInput({
 
   // Debug: Log received messageDraft props
   useEffect(() => {
-    console.log('SidebarInput received messageDraft:', messageDraft)
-    console.log('SidebarInput files count:', messageDraft.files.length)
+    // MessageDraft received
   }, [messageDraft])
 
   useEffect(() => {

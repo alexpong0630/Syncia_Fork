@@ -28,7 +28,6 @@ export const useChatModels = () => {
 
         setModels(data.data)
       } catch (error) {
-        console.log('Failed to fetch models:', error)
         setModels([])
       }
     }

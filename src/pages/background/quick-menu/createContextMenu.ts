@@ -83,7 +83,6 @@ export const createContextMenu = async () => {
  */
 export const createContextMenuOnStorageChange = () => {
   chrome.storage.onChanged.addListener(() => {
-    console.log('📝 Storage changed')
     createContextMenu()
   })
 }

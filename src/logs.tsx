@@ -4,9 +4,9 @@ const logoText =
 const msgText = (msg: string) => `\n${' '.repeat(14 - msg.length / 2)}[${msg}]`
 
 export const contentScriptLog = (item: string) => {
-  console.log(`${item} Script Loaded`)
+  // Script loaded
 }
 
 export const backgroundLog = () => {
-  console.log(logoText, msgText('Background Loaded'))
+  // Background loaded
 }
