@@ -11,9 +11,8 @@ const TranslateSettings = () => {
 
   const translateSettings = settings.autoTranslation
 
-  const [threadSize, setThreadSize] = useState(translateSettings.thread);
-  const [batchSize, setBatchSize] = useState(translateSettings.batchSize);
-
+  const [threadSize, setThreadSize] = useState(translateSettings.thread)
+  const [batchSize, setBatchSize] = useState(translateSettings.batchSize)
 
   const handleEnableAutoTranslateChange = (enabled: boolean) => {
     setSettings({
@@ -25,16 +24,10 @@ const TranslateSettings = () => {
     })
   }
 
-  
-
   return (
     <div className="cdx-w-full cdx-flex-shrink-0 cdx-rounded-md">
       <SectionHeading title="Translate" />
-      <FieldWrapper
-        title="Enable Translate"
-        description="translate"
-        row={true}
-      >
+      <FieldWrapper title="Enable Translate" description="translate" row={true}>
         <Switch.Root
           checked={translateSettings.enabled}
           onCheckedChange={handleEnableAutoTranslateChange}
@@ -43,11 +36,7 @@ const TranslateSettings = () => {
           <Switch.Thumb className="cdx-block cdx-w-[21px] cdx-h-[21px] cdx-bg-white cdx-rounded-full cdx-transition-transform cdx-duration-100 cdx-translate-x-0.5 cdx-will-change-transform data-[state=checked]:cdx-translate-x-[19px]" />
         </Switch.Root>
       </FieldWrapper>
-      <FieldWrapper
-        title="Language"
-        description="Language"
-        row={true}
-      >
+      <FieldWrapper title="Language" description="Language" row={true}>
         <select
           value={translateSettings.language}
           onChange={(e) => {
@@ -61,12 +50,11 @@ const TranslateSettings = () => {
           }}
           className="input cdx-w-36"
         >
-          {Object.entries(Language)
-            .map(([key, value]) => (
-              <option key={key} value={value}>
-                {capitalizeText(key.replace('_', ' ').toLowerCase())}
-              </option>
-            ))}
+          {Object.entries(Language).map(([key, value]) => (
+            <option key={key} value={value}>
+              {capitalizeText(key.replace('_', ' ').toLowerCase())}
+            </option>
+          ))}
         </select>
       </FieldWrapper>
 
@@ -79,8 +67,8 @@ const TranslateSettings = () => {
           type="number"
           value={translateSettings.thread}
           onChange={(e) => {
-            const newThreadSize = parseInt(e.target.value);
-            setThreadSize(newThreadSize);
+            const newThreadSize = Number.parseInt(e.target.value)
+            setThreadSize(newThreadSize)
             setSettings({
               ...settings,
               autoTranslation: {
@@ -93,17 +81,13 @@ const TranslateSettings = () => {
         />
       </FieldWrapper>
 
-      <FieldWrapper
-        title="Batch Size"
-        description="Batch Size"
-        row={true}
-      >
+      <FieldWrapper title="Batch Size" description="Batch Size" row={true}>
         <input
           type="number"
           value={translateSettings.batchSize}
           onChange={(e) => {
-            const newBatchSize = parseInt(e.target.value);
-            setBatchSize(newBatchSize);
+            const newBatchSize = Number.parseInt(e.target.value)
+            setBatchSize(newBatchSize)
             setSettings({
               ...settings,
               autoTranslation: {

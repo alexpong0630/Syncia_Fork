@@ -117,12 +117,12 @@ export type Settings = {
   general: {
     theme: ThemeOptions
     webpageContext: boolean
-  },
+  }
   autoTranslation: {
     enabled: boolean
     language: string
     autoTranslateForDomain: string[]
-    batchSize: number,
+    batchSize: number
     thread: number
   }
 }
@@ -147,7 +147,7 @@ export const defaultSettings: Settings = {
     enabled: true,
     language: 'Chinese(Traditional)',
     autoTranslateForDomain: [],
-    batchSize:50,
-    thread: 5
-  }
+    batchSize: 50,
+    thread: 5,
+  },
 }

@@ -55,18 +55,17 @@ export const createContextMenu = async () => {
     chrome.contextMenus.create(item)
   }
 
-  
   chrome.contextMenus.create({
-    id: "syncia_translate",
-    title: "Syncia - Translate",
+    id: 'syncia_translate',
+    title: 'Syncia - Translate',
     contexts: ['page'],
-  });
+  })
 
   chrome.contextMenus.create({
-    id: "syncia_cancel_translate",
-    title: "Syncia - Cancel Translate",
+    id: 'syncia_cancel_translate',
+    title: 'Syncia - Cancel Translate',
     contexts: ['page'],
-  });
+  })
 }
 
 /**
