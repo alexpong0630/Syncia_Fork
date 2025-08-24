@@ -199,6 +199,7 @@ class TranslateService {
     Object.assign(translatedDiv.style, {
         fontSize: domElement.style.fontSize,
         backgroundColor: '#e5e4e4',
+        color: '#1f2937',
         borderRadius: '2px',
         padding: '3px 0px'
     });
