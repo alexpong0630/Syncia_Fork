@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai'
 import { Mode } from '../../../config/settings'
 import { useChatModels } from '../../../hooks/useChatModels'
+import { useEmbeddingModels } from '../../../hooks/useEmbeddingModels'
 import { useSettings } from '../../../hooks/useSettings'
 import { capitalizeText } from '../../../lib/capitalizeText'
 import { validateApiKey } from '../../../lib/validApiKey'
@@ -11,11 +12,45 @@ import SectionHeading from '../Elements/SectionHeading'
 const ChatSettings = () => {
   const [settings, setSettings] = useSettings()
   const [showPassword, setShowPassword] = useState(false)
-  const { models, setActiveChatModel } = useChatModels()
+  const [formatDetectionResult, setFormatDetectionResult] = useState<string | null>(null)
+  const {
+    models,
+    setActiveChatModel,
+    fetchAvailableModels: fetchAvailableChatModels,
+  } = useChatModels()
+  const {
+    models: embeddingModels,
+    setActiveEmbeddingModel,
+    fetchAvailableModels: fetchAvailableEmbeddingModels,
+    isTestingFormat,
+  } = useEmbeddingModels()
   const OpenAiApiKeyInputRef = React.useRef<HTMLInputElement>(null)
   const OpenAiBaseUrlInputRef = React.useRef<HTMLInputElement>(null)
 
   const chatSettings = settings.chat
+
+  const [isValidating, setIsValidating] = useState(false)
+  
+  // 自定義的 embedding model 設定函數，包含格式檢測結果通知
+  const handleEmbeddingModelChange = async (modelId: string) => {
+    try {
+      await setActiveEmbeddingModel(modelId)
+      
+      // 顯示格式檢測結果
+      const detectedFormat = settings.chat.embeddingFormat || 'auto'
+      setFormatDetectionResult(`✅ Model "${modelId}" format detected: ${detectedFormat}`)
+      
+      // 3秒後自動清除通知
+      setTimeout(() => {
+        setFormatDetectionResult(null)
+      }, 3000)
+    } catch (error) {
+      setFormatDetectionResult(`❌ Failed to set model "${modelId}": ${error}`)
+      setTimeout(() => {
+        setFormatDetectionResult(null)
+      }, 5000)
+    }
+  }
 
   const handleOpenAiKeySubmit = async (
     event: React.FormEvent<HTMLFormElement>,
@@ -25,12 +60,13 @@ const ChatSettings = () => {
     const baseurlValue = OpenAiBaseUrlInputRef.current?.value || ''
 
     if (OpenAiApiKeyInputRef.current) {
+      setIsValidating(true)
       const isOpenAiKeyValid: boolean = await validateApiKey(
         apiKeyValue,
         baseurlValue,
       )
       if (isOpenAiKeyValid) {
-        setSettings({
+        await setSettings({
           ...settings,
           chat: {
             ...chatSettings,
@@ -38,7 +74,10 @@ const ChatSettings = () => {
             openAiBaseUrl: baseurlValue,
           },
         })
+        fetchAvailableChatModels()
+        fetchAvailableEmbeddingModels()
       }
+      setIsValidating(false)
       const inputStyles = isOpenAiKeyValid
         ? { classname: 'input-success', value: `✅  ${apiKeyValue}` }
         : { classname: 'input-failed', value: `❌  ${apiKeyValue}` }
@@ -134,6 +173,63 @@ const ChatSettings = () => {
           ))}
         </select>
       </FieldWrapper>
+      {embeddingModels.length > 0 && (
+        <>
+          <FieldWrapper
+            title="Embedding Model"
+            description="Choose between available embedding models (format will be automatically detected)"
+            row={true}
+          >
+            <div className="cdx-flex cdx-gap-2 cdx-items-center">
+              <select
+                value={chatSettings.embeddingModel || ''}
+                className="input cdx-w-44"
+                onChange={(e) => handleEmbeddingModelChange(e.target.value)}
+                disabled={isTestingFormat}
+              >
+                <option value="">Select a model</option>
+                {embeddingModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.id}
+                  </option>
+                ))}
+              </select>
+              {isTestingFormat && (
+                <div className="cdx-flex cdx-items-center cdx-gap-2 cdx-text-sm cdx-text-blue-600 dark:cdx-text-blue-400">
+                  <div className="cdx-w-4 cdx-h-4 cdx-border-2 cdx-border-blue-600 cdx-border-t-transparent cdx-rounded-full cdx-animate-spin"></div>
+                  Testing format...
+                </div>
+              )}
+            </div>
+            {formatDetectionResult && (
+              <div className="cdx-mt-2 cdx-p-2 cdx-text-sm cdx-rounded cdx-bg-blue-50 dark:cdx-bg-blue-900/20 cdx-text-blue-700 dark:cdx-text-blue-300 cdx-border cdx-border-blue-200 dark:cdx-border-blue-800">
+                {formatDetectionResult}
+              </div>
+            )}
+          </FieldWrapper>
+          <FieldWrapper
+            title="Embedding Format"
+            description={`Automatically detected: ${chatSettings.embeddingFormat || 'auto'} (you can manually override if needed)`}
+            row={true}
+          >
+            <select
+              value={chatSettings.embeddingFormat || 'auto'}
+              className="input cdx-w-44"
+              onChange={(e) => setSettings({
+                ...settings,
+                chat: {
+                  ...chatSettings,
+                  embeddingFormat: e.target.value as 'auto' | 'float' | 'base64',
+                },
+              })}
+            >
+              <option value="auto">Auto (Recommended)</option>
+              <option value="float">Float Array</option>
+              <option value="base64">Base64</option>
+            </select>
+          </FieldWrapper>
+        </>
+      )}
       <FieldWrapper
         title="Mode"
         description="Tweak temperature of response. Creative will generate more non deterministic responses, Precise will generate more deterministic responses."
@@ -141,8 +237,8 @@ const ChatSettings = () => {
       >
         <select
           value={chatSettings.mode}
-          onChange={(e) => {
-            setSettings({
+          onChange={async (e) => {
+            await setSettings({
               ...settings,
               chat: {
                 ...chatSettings,

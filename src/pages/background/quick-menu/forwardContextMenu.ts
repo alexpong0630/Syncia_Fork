@@ -14,6 +14,16 @@ export const forwardContextMenuClicks = () => {
           payload: {pageDomain },
         })
       }
+    } else if (info.menuItemId === 'syncia_add_image_to_chat') {
+      // Handle adding image to chat
+      if (tab?.id && info.srcUrl) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'add-image-to-chat',
+          payload: { imageUrl: info.srcUrl },
+        })
+      } else {
+        console.error('Missing tab ID or image URL:', { tabId: tab?.id, srcUrl: info.srcUrl })
+      }
     } else {
       const selectedText = info.selectionText
       const id = info.menuItemId

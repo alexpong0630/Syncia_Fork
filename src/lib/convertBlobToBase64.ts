@@ -1,11 +1,27 @@
 export const convertBlobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = reject
-    reader.onload = () => {
-      // The result attribute contains the data as a base64 encoded string
-      resolve(reader.result as string)
+    if (!blob || blob.size === 0) {
+      reject(new Error('Invalid blob: empty or null'))
+      return
     }
-    reader.readAsDataURL(blob) // Converts the blob to base64 and calls onload
+    
+    const reader = new FileReader()
+    
+    reader.onerror = (error) => {
+      console.error('FileReader error:', error)
+      reject(error)
+    }
+    
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result)
+    }
+    
+    try {
+      reader.readAsDataURL(blob) // Converts the blob to base64 and calls onload
+    } catch (error) {
+      console.error('Error calling readAsDataURL:', error)
+      reject(error)
+    }
   })
 }

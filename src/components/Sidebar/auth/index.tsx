@@ -37,7 +37,7 @@ const Auth = () => {
     setIsLoadingModels(true)
     try {
       if (await validateApiKey(key, url)) {
-        setSettings((prev) => ({
+        await setSettings((prev) => ({
           ...prev,
           chat: { ...prev.chat, openAIKey: key, openAiBaseUrl: url },
         }))

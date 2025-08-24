@@ -5,7 +5,7 @@ export const getStoredPrompts = async () => {
   const storedPrompts = await getStoredLocalPrompts()
   if (!storedPrompts) {
     chrome.storage.local.set({ PROMPTS: defaultPrompts }, () => {
-      console.log('ℹ️ Default prompts stored from getStoredPrompts.ts')
+      // Default prompts stored
     })
   }
   return storedPrompts ?? defaultPrompts

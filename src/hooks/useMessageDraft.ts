@@ -24,12 +24,21 @@ export const useMessageDraft = () => {
   }
 
   const addMessageDraftFile = async (blob: Blob) => {
-    const file = {
-      id: getUUID(),
-      type: blob.type,
-      src: await convertBlobToBase64(blob),
+    try {
+      const file = {
+        id: getUUID(),
+        type: blob.type || 'image/png',
+        src: await convertBlobToBase64(blob),
+      }
+      
+      setMessageDraft((p) => {
+        const newDraft = { ...p, files: [...p.files, file] }
+        return newDraft
+      })
+    } catch (error) {
+      console.error('Error in addMessageDraftFile:', error)
+      throw error
     }
-    setMessageDraft((p) => ({ ...p, files: [...p.files, file] }))
   }
 
   const removeMessageDraftFile = (id: string) => {

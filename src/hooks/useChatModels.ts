@@ -28,7 +28,6 @@ export const useChatModels = () => {
 
         setModels(data.data)
       } catch (error) {
-        console.log('Failed to fetch models:', error)
         setModels([])
       }
     }
@@ -38,8 +37,8 @@ export const useChatModels = () => {
     fetchAvailableModels()
   }, [fetchAvailableModels])
 
-  const setActiveChatModel = (modelId: string) => {
-    setSettings({
+  const setActiveChatModel = async (modelId: string) => {
+    await setSettings({
       ...settings,
       chat: {
         ...chatSettings,

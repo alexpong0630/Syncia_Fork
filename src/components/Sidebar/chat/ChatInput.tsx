@@ -23,6 +23,11 @@ interface SidebarInputProps {
   cancelRequest: () => void
   isWebpageContextOn: boolean
   isVisionModel: boolean
+  messageDraft: MessageDraft
+  setMessageDraftText: (text: string) => void
+  resetMessageDraft: () => void
+  addMessageDraftFile: (blob: Blob) => Promise<void>
+  removeMessageDraftFile: (id: string) => void
 }
 
 const MAX_MESSAGE_LENGTH = 10000
@@ -35,16 +40,19 @@ export function SidebarInput({
   cancelRequest,
   isWebpageContextOn,
   isVisionModel,
+  messageDraft,
+  setMessageDraftText,
+  resetMessageDraft,
+  addMessageDraftFile,
+  removeMessageDraftFile,
 }: SidebarInputProps) {
-  const {
-    messageDraft,
-    setMessageDraftText,
-    resetMessageDraft,
-    addMessageDraftFile,
-    removeMessageDraftFile,
-  } = useMessageDraft()
   const [delayedLoading, setDelayedLoading] = useState(false)
   const { history } = useChatHistory()
+
+  // Debug: Log received messageDraft props
+  useEffect(() => {
+    // MessageDraft received
+  }, [messageDraft])
 
   useEffect(() => {
     const handleLoadingTimeout = setTimeout(() => {
@@ -98,6 +106,10 @@ export function SidebarInput({
   return (
     <div className="cdx-fixed cdx-bottom-0 cdx-left-0 cdx-right-0 cdx-flex cdx-flex-col ">
       <div className="cdx-flex cdx-mx-3 cdx-items-center cdx-justify-between">
+        <div className="cdx-flex cdx-gap-2">
+          <ChangeChatModel />
+          {(history.length || !chatIsEmpty) && <ChatHistory />}
+        </div>
         {!chatIsEmpty ? (
           <button
             type="button"
@@ -109,10 +121,6 @@ export function SidebarInput({
         ) : (
           <div />
         )}
-        <div className="cdx-flex cdx-gap-2">
-          <ChangeChatModel />
-          {(history.length || !chatIsEmpty) && <ChatHistory />}
-        </div>
       </div>
 
       <div className="cdx-m-2 cdx-rounded-md cdx-border dark:cdx-border-neutral-800 cdx-border-neutral-300 dark:cdx-bg-neutral-900/90 cdx-bg-neutral-200/90 focus:cdx-outline-none focus:cdx-ring-2 focus:cdx-ring-blue-900 focus:cdx-ring-opacity-50">

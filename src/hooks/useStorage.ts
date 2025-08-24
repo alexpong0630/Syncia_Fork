@@ -1,6 +1,5 @@
 import { type PrimitiveAtom, useAtom } from 'jotai'
 import {
-  type Dispatch,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -12,7 +11,7 @@ export type StorageArea = 'sync' | 'local' | 'indexedDB'
 // custom hook to set chrome local/sync storage
 // should also set a listener on this specific key
 
-type SetValue<T> = Dispatch<SetStateAction<T>>
+type SetValue<T> = (value: SetStateAction<T>) => Promise<boolean>
 
 /**
  * Returns a stateful value from storage, and a function to update it.
@@ -42,28 +41,27 @@ export function useStorage<T>(
 
   const setValueRef = useRef<SetValue<T>>()
 
-  setValueRef.current = (value) => {
+  setValueRef.current = async (value) => {
     // Allow value to be a function, so we have the same API as useState
     const newValue = value instanceof Function ? value(storedValue) : value
     // Save to storage
-    setStoredValue((prevState) => {
-      setStorage<T>(key, newValue, area).then((success) => {
-        if (!success) setStoredValue(prevState)
-      })
-
-      return newValue
-    })
+    const success = await setStorage<T>(key, newValue, area)
+    if (success) {
+      setStoredValue(newValue)
+    }
+    return success
   }
 
   // Return a wrapped version of useState's setter function that ...
   // ... persists the new value to storage.
   const setValue: SetValue<T> = useCallback(
-    (value) => setValueRef.current?.(value),
+    async (value) => (await setValueRef.current?.(value)) || false,
     [],
   )
 
   return [storedValue, setValue]
 }
+
 
 /**
  * Retrieves value from chrome storage area
